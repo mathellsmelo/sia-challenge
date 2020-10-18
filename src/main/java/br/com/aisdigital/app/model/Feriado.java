@@ -24,5 +24,6 @@ public class Feriado {
     private LocalDate data;
 
     public Feriado(LocalDate data) {
+        this.data = data;
     }
 }
