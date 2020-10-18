@@ -50,7 +50,7 @@ public class PontoEletronicoService {
         Usuario usuario = usuarioRepository.findById(usuarioService.getIdUsuario(auth)).get();
 
         pontoEletronicoRequest.setPeriodo("M");
-        RegrasVO regras = verificaRegras(pontoEletronicoRequest);
+        RegrasVO regras = verificaRegras(pontoEletronicoRequest, usuario);
         if(!regras.getValido()) {
             return regras.getMsg();
         }
@@ -66,7 +66,7 @@ public class PontoEletronicoService {
     public String atualizarPontoEletronicoManha(PontoEletronicoRequest pontoEletronicoRequest, Authentication auth, Integer idPonto) {
         Usuario usuario = usuarioRepository.findById(usuarioService.getIdUsuario(auth)).get();
         pontoEletronicoRequest.setPeriodo("M");
-        RegrasVO regras = verificaRegrasAtualizacao(pontoEletronicoRequest);
+        RegrasVO regras = verificaRegrasAtualizacao(pontoEletronicoRequest, usuario);
         if(!regras.getValido()) {
             return regras.getMsg();
         }
@@ -83,7 +83,7 @@ public class PontoEletronicoService {
     public String atualizarPontoEletronicoTarde(PontoEletronicoRequest pontoEletronicoRequest, Authentication auth, Integer idPonto) {
         Usuario usuario = usuarioRepository.findById(usuarioService.getIdUsuario(auth)).get();
         pontoEletronicoRequest.setPeriodo("T");
-        RegrasVO regras = verificaRegrasAtualizacao(pontoEletronicoRequest);
+        RegrasVO regras = verificaRegrasAtualizacao(pontoEletronicoRequest, usuario);
         if(!regras.getValido()) {
             return regras.getMsg();
         }
@@ -101,7 +101,7 @@ public class PontoEletronicoService {
         Usuario usuario = usuarioRepository.findById(usuarioService.getIdUsuario(auth)).get();
 
         pontoEletronicoRequest.setPeriodo("T");
-        RegrasVO regras = verificaRegras(pontoEletronicoRequest);
+        RegrasVO regras = verificaRegras(pontoEletronicoRequest, usuario);
         if(!regras.getValido()) {
             return regras.getMsg();
         }
@@ -123,22 +123,22 @@ public class PontoEletronicoService {
         return d == DayOfWeek.SATURDAY || d == DayOfWeek.SUNDAY;
     }
 
-    public Boolean verificaPontoPeriodo(PontoEletronicoRequest pontoEletronicoRequest) {
-        return repository.existsByPeriodoAndData(pontoEletronicoRequest.getPeriodo(), pontoEletronicoRequest.getData());
+    public Boolean verificaPontoPeriodo(PontoEletronicoRequest pontoEletronicoRequest, Usuario usuario) {
+        return repository.existsByPeriodoAndDataAndUsuario(pontoEletronicoRequest.getPeriodo(), pontoEletronicoRequest.getData(), usuario);
     }
 
-    public Boolean verificaHorarioAlmoco(PontoEletronicoRequest pontoEletronicoRequest) {
+    public Boolean verificaHorarioAlmoco(PontoEletronicoRequest pontoEletronicoRequest, Usuario usuario) {
         switch(pontoEletronicoRequest.getPeriodo()) {
             case "M":
-                return verificaHorarioAlmocoManha(pontoEletronicoRequest);
+                return verificaHorarioAlmocoManha(pontoEletronicoRequest, usuario);
             case "T":
-                return verificaHorarioAlmocoTarde(pontoEletronicoRequest);
+                return verificaHorarioAlmocoTarde(pontoEletronicoRequest, usuario);
         }
         return false;
     }
 
-    public Boolean verificaHorarioAlmocoManha(PontoEletronicoRequest pontoEletronicoRequest) {
-        PontoEletronico pontoTarde = repository.findByPeriodoAndData("T", pontoEletronicoRequest.getData());
+    public Boolean verificaHorarioAlmocoManha(PontoEletronicoRequest pontoEletronicoRequest, Usuario usuario) {
+        PontoEletronico pontoTarde = repository.findByPeriodoAndDataAndUsuario("T", pontoEletronicoRequest.getData(), usuario);
 
         if (pontoTarde == null) { return true; }
 
@@ -147,8 +147,8 @@ public class PontoEletronicoService {
         return diff < 60 ? false : true;
     }
 
-    public Boolean verificaHorarioAlmocoTarde(PontoEletronicoRequest pontoEletronicoRequest) {
-        PontoEletronico pontoManha = repository.findByPeriodoAndData("M", pontoEletronicoRequest.getData());
+    public Boolean verificaHorarioAlmocoTarde(PontoEletronicoRequest pontoEletronicoRequest, Usuario usuario) {
+        PontoEletronico pontoManha = repository.findByPeriodoAndDataAndUsuario("M", pontoEletronicoRequest.getData(), usuario);
 
         if (pontoManha == null) { return true; }
 
@@ -157,14 +157,14 @@ public class PontoEletronicoService {
         return diff < 60 ? false : true;
     }
 
-    public Boolean verificaSobreposicaoPeriodos(PontoEletronicoRequest pontoEletronicoRequest) {
+    public Boolean verificaSobreposicaoPeriodos(PontoEletronicoRequest pontoEletronicoRequest, Usuario usuario) {
         PontoEletronico pontoPeriodoContrario = null;
         switch(pontoEletronicoRequest.getPeriodo()) {
             case "M":
-                pontoPeriodoContrario = repository.findByPeriodoAndData("T", pontoEletronicoRequest.getData());
+                pontoPeriodoContrario = repository.findByPeriodoAndDataAndUsuario("T", pontoEletronicoRequest.getData(), usuario);
                 break;
             case "T":
-                pontoPeriodoContrario = repository.findByPeriodoAndData("M", pontoEletronicoRequest.getData());
+                pontoPeriodoContrario = repository.findByPeriodoAndDataAndUsuario("M", pontoEletronicoRequest.getData(), usuario);
                 break;
         }
         if(pontoPeriodoContrario == null) { return false; }
@@ -177,18 +177,18 @@ public class PontoEletronicoService {
         return feriadoRepository.existsByData(data);
     }
 
-    public Boolean verificaHorasAlocadas(PontoEletronicoRequest pontoEletronicoRequest) {
+    public Boolean verificaHorasAlocadas(PontoEletronicoRequest pontoEletronicoRequest, Usuario usuario) {
         Integer horasTrabalhadasPeriodoContrario = null;
         switch(pontoEletronicoRequest.getPeriodo()) {
             case "M":
-                horasTrabalhadasPeriodoContrario = horasTrabalhadasTarde(pontoEletronicoRequest.getData());
+                horasTrabalhadasPeriodoContrario = horasTrabalhadasTarde(pontoEletronicoRequest.getData(), usuario);
                 break;
             case "T":
-                horasTrabalhadasPeriodoContrario = horasTrabalhadasManha(pontoEletronicoRequest.getData());
+                horasTrabalhadasPeriodoContrario = horasTrabalhadasManha(pontoEletronicoRequest.getData(), usuario);
                 break;
         }
 
-        List<AlocacaoHoras> listaHorasAlocadas = alocacaoHorasRepository.findByData(pontoEletronicoRequest.getData());
+        List<AlocacaoHoras> listaHorasAlocadas = alocacaoHorasRepository.findByDataAndUsuario(pontoEletronicoRequest.getData(), usuario);
         Integer horasAlocadas = contarNumeroHorasAlocadas(listaHorasAlocadas);
         Integer horasTrabalhadas =  Math.toIntExact(MINUTES.between(pontoEletronicoRequest.getHoraEntrada(), pontoEletronicoRequest.getHoraSaida()));
 
@@ -199,7 +199,7 @@ public class PontoEletronicoService {
         return true;
     }
 
-    public RegrasVO verificaRegras(PontoEletronicoRequest pontoEletronicoRequest) {
+    public RegrasVO verificaRegras(PontoEletronicoRequest pontoEletronicoRequest, Usuario usuario) {
         if(!verificaHoraSaidaMaiorQueHoraEntrada(pontoEletronicoRequest)) {
             return new RegrasVO(false, "Hora de entrada não deve ser maior que hora de saída.");
         }
@@ -209,27 +209,27 @@ public class PontoEletronicoService {
         if(verificaFeriado(pontoEletronicoRequest.getData())) {
             return new RegrasVO(false, "Não é permitido trabalhar em feriado.");
         }
-        if(verificaPontoPeriodo(pontoEletronicoRequest)) {
+        if(verificaPontoPeriodo(pontoEletronicoRequest, usuario)) {
             return new RegrasVO(false, "Já existe um ponto registrado neste dia, neste período.");
         }
-        if(verificaSobreposicaoPeriodos(pontoEletronicoRequest)) {
+        if(verificaSobreposicaoPeriodos(pontoEletronicoRequest, usuario)) {
             return new RegrasVO(false, "Os períodos, manhã e tarde, do dia não podem se sobrepor.");
         }
-        if(!verificaHorarioAlmoco(pontoEletronicoRequest)) {
+        if(!verificaHorarioAlmoco(pontoEletronicoRequest, usuario)) {
             return new RegrasVO(false, "É obrigatório ter pelo menos 1 hora de almoço.");
         }
 
         return new RegrasVO(true, "");
     }
 
-    public RegrasVO verificaRegrasAtualizacao(PontoEletronicoRequest pontoEletronicoRequest) {
-        if(verificaSobreposicaoPeriodos(pontoEletronicoRequest)) {
+    public RegrasVO verificaRegrasAtualizacao(PontoEletronicoRequest pontoEletronicoRequest, Usuario usuario) {
+        if(verificaSobreposicaoPeriodos(pontoEletronicoRequest, usuario)) {
             return new RegrasVO(false, "Os períodos, manhã e tarde, do dia não podem se sobrepor.");
         }
-        if(!verificaHorarioAlmoco(pontoEletronicoRequest)) {
+        if(!verificaHorarioAlmoco(pontoEletronicoRequest, usuario)) {
             return new RegrasVO(false, "É obrigatório ter pelo menos 1 hora de almoço.");
         }
-        if(!verificaHorasAlocadas(pontoEletronicoRequest)){
+        if(!verificaHorasAlocadas(pontoEletronicoRequest, usuario)){
             return new RegrasVO(false, "O tempo alocado não pode ser maior que o novo tempo trabalhado no dia.");
         }
 
@@ -282,8 +282,8 @@ public class PontoEletronicoService {
         AlocacaoHoras entidade = alocacaoHorasService.mapper(req);
         entidade.setUsuario(usuario);
 
-        List<PontoEletronico> listaHoras = repository.findByData(req.getData());
-        List<AlocacaoHoras> listaHorasAlocadas = alocacaoHorasRepository.findByData(req.getData());
+        List<PontoEletronico> listaHoras = repository.findByDataAndUsuario(req.getData(), usuario);
+        List<AlocacaoHoras> listaHorasAlocadas = alocacaoHorasRepository.findByDataAndUsuario(req.getData(), usuario);
 
         Integer horasTrabalhadasNoDia = contarNumeroHoras(listaHoras);
         Integer horasAlocadas = contarNumeroHorasAlocadas(listaHorasAlocadas);
@@ -301,16 +301,16 @@ public class PontoEletronicoService {
         return "Horas alocadas com sucesso";
     }
 
-    public Integer horasTrabalhadasTarde(LocalDate data) {
-        PontoEletronico pontoTarde = repository.findByPeriodoAndData("T", data);
+    public Integer horasTrabalhadasTarde(LocalDate data, Usuario usuario) {
+        PontoEletronico pontoTarde = repository.findByPeriodoAndDataAndUsuario("T", data, usuario);
 
         if (pontoTarde == null) { return 0; }
 
         return Math.toIntExact(MINUTES.between(pontoTarde.getHoraEntrada(), pontoTarde.getHoraSaida()));
     }
 
-    public Integer horasTrabalhadasManha(LocalDate data) {
-        PontoEletronico pontoTarde = repository.findByPeriodoAndData("M", data);
+    public Integer horasTrabalhadasManha(LocalDate data, Usuario usuario) {
+        PontoEletronico pontoTarde = repository.findByPeriodoAndDataAndUsuario("M", data, usuario);
 
         if (pontoTarde == null) { return 0; }
 
